@@ -81,7 +81,7 @@ describe("basic fetch client usage", () => {
       },
     });
 
-    const result = await api.safeGet<{ id: number; name: string }>("/users/1");
+    const result = await api.get<{ id: number; name: string }>("/users/1");
 
     expect(result).toEqual({
       id: 1,

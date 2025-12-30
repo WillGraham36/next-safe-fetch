@@ -6,6 +6,7 @@ import type {
   RequestOptions,
   StandardResponse,
   RequestContext,
+  FullResponseShaper,
 } from "./types";
 import {
   isServer,
@@ -28,7 +29,14 @@ export function createFetchClient(config: FetchClientConfig = {}): FetchClient {
     errors: handlers,
   } = config;
 
-  const shaper = config.responseFormat ?? createStandardShaper();
+  const defaultShaper = createStandardShaper();
+  const userShaper = config.responseFormat;
+
+  const shaper: FullResponseShaper<StandardResponse<any>> = {
+    ...userShaper,
+    ...defaultShaper,
+    redirect: userShaper?.redirect ?? defaultShaper.redirect,
+  };
 
   // --------------------------------------------------------------------------
   // Core Executor
@@ -91,7 +99,23 @@ export function createFetchClient(config: FetchClientConfig = {}): FetchClient {
     // --------------------------------------------------------------------------
     // Redirects
     // --------------------------------------------------------------------------
-    await handleRedirect(res, reqContext, redirects, onRedirect);
+    const redirectStatus = await handleRedirect(
+      res,
+      reqContext,
+      redirects,
+      onRedirect
+    );
+    if (redirectStatus.handled) {
+      if (safe) {
+        return shaper.redirect({
+          status: redirectStatus.status,
+          location: redirectStatus.location,
+          ctx: reqContext,
+        }) as StandardResponse<T>;
+      }
+
+      return undefined as never;
+    }
 
     // --------------------------------------------------------------------------
     // Parse Response

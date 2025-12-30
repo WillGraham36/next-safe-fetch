@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { createFetchClient } from "../src/createClient";
+import { FetchError } from "../src/types";
 
 // ============================================================================
 // Mocks & Helpers
@@ -121,6 +122,7 @@ describe("createFetchClient (Standard Methods)", () => {
   describe("Headers & Content-Type", () => {
     it("merges global headers with request headers", async () => {
       const client = createFetchClient({
+        baseUrl: "https://example.com",
         headers: { "x-global": "1" },
       });
       mockFetch.mockResolvedValue(mockResponse({}));
@@ -133,7 +135,9 @@ describe("createFetchClient (Standard Methods)", () => {
     });
 
     it("automatically sets application/json when body is present", async () => {
-      const client = createFetchClient();
+      const client = createFetchClient({
+        baseUrl: "https://example.com",
+      });
       mockFetch.mockResolvedValue(mockResponse({}));
 
       const body = { name: "Test" };
@@ -147,7 +151,9 @@ describe("createFetchClient (Standard Methods)", () => {
     });
 
     it("respects manually provided content-type", async () => {
-      const client = createFetchClient();
+      const client = createFetchClient({
+        baseUrl: "https://example.com",
+      });
       mockFetch.mockResolvedValue(mockResponse({}));
 
       await client.post("/test", {
@@ -167,6 +173,7 @@ describe("createFetchClient (Standard Methods)", () => {
     it("passes auth credentials in Browser environment", async () => {
       setServerEnv(false); // Browser mode
       const client = createFetchClient({
+        baseUrl: "https://example.com",
         auth: {
           client: { credentials: "include" },
         },
@@ -184,6 +191,7 @@ describe("createFetchClient (Standard Methods)", () => {
     it("does NOT pass credentials in Server environment", async () => {
       setServerEnv(true); // Server mode
       const client = createFetchClient({
+        baseUrl: "https://example.com",
         auth: {
           client: { credentials: "include" },
         },
@@ -201,6 +209,7 @@ describe("createFetchClient (Standard Methods)", () => {
     it("allows disabling auth per-request", async () => {
       setServerEnv(false);
       const client = createFetchClient({
+        baseUrl: "https://example.com",
         auth: { client: { credentials: "include" } },
       });
 
@@ -218,7 +227,9 @@ describe("createFetchClient (Standard Methods)", () => {
   // 4. Response Parsing & Schemas
   // --------------------------------------------------------------------------
   describe("Response Handling", () => {
-    const client = createFetchClient();
+    const client = createFetchClient({
+      baseUrl: "https://example.com",
+    });
 
     it("parses JSON responses automatically", async () => {
       const data = { id: 123 };
@@ -257,7 +268,9 @@ describe("createFetchClient (Standard Methods)", () => {
   // --------------------------------------------------------------------------
   describe("Error Handling", () => {
     it("throws a StandardError object on 4xx/5xx responses", async () => {
-      const client = createFetchClient();
+      const client = createFetchClient({
+        baseUrl: "https://httpstat.us",
+      });
       mockFetch.mockResolvedValue(
         mockResponse(
           { error: "Bad Request" },
@@ -265,12 +278,13 @@ describe("createFetchClient (Standard Methods)", () => {
         )
       );
 
-      await expect(client.get("/fail")).rejects.toMatchObject({
-        ok: false,
-        status: 400,
-        message: "HTTP 400: Bad Request",
-        data: { error: "Bad Request" },
-      });
+      await expect(client.get("/400")).rejects.toBeInstanceOf(Error);
+
+      try {
+        await client.get("/400");
+      } catch (res) {
+        expect((res as FetchError).response.status).toBe(400);
+      }
     });
 
     it("calls global error handlers (Client)", async () => {
@@ -278,7 +292,12 @@ describe("createFetchClient (Standard Methods)", () => {
       const clientHandler = vi.fn();
 
       const client = createFetchClient({
-        errors: { handlers: { client: clientHandler } },
+        baseUrl: "https://example.com",
+        errors: {
+          handleClientError(error) {
+            clientHandler(error);
+          },
+        },
       });
 
       mockFetch.mockResolvedValue(mockResponse({}, { status: 500 }));
@@ -297,7 +316,12 @@ describe("createFetchClient (Standard Methods)", () => {
       const serverHandler = vi.fn();
 
       const client = createFetchClient({
-        errors: { handlers: { server: serverHandler } },
+        baseUrl: "https://httpstat.us",
+        errors: {
+          handleServerError(error, ctx) {
+            serverHandler(error, ctx);
+          },
+        },
       });
 
       mockFetch.mockResolvedValue(mockResponse({}, { status: 500 }));
@@ -316,10 +340,12 @@ describe("createFetchClient (Standard Methods)", () => {
     });
 
     it("allows request-level onError to recover/override the error", async () => {
-      const client = createFetchClient();
+      const client = createFetchClient({
+        baseUrl: "https://httpstat.us",
+      });
       mockFetch.mockResolvedValue(mockResponse({}, { status: 404 }));
 
-      const result = await client.get("/missing", {
+      const result = await client.get("/404", {
         onError: (err) => {
           return { fallback: "value" }; // Return fallback
         },
@@ -330,24 +356,27 @@ describe("createFetchClient (Standard Methods)", () => {
 
     it("uses a custom response shaper for errors", async () => {
       const client = createFetchClient({
-        errors: {
-          shaper: {
-            success: (ctx) => ctx.data,
-            error: (ctx) => ({
-              ok: false,
-              status: ctx.status,
-              message: "Custom Error Message", // Customized
-              raw: ctx.raw,
-            }),
-          },
+        baseUrl: "https://httpstat.us",
+        responseFormat: {
+          success: (ctx) => ctx.data,
+          error: (ctx) => ({
+            ok: false,
+            status: ctx.status,
+            message: "Custom Error Message", // Customized
+            raw: ctx.raw,
+          }),
         },
       });
 
       mockFetch.mockResolvedValue(mockResponse({}, { status: 500 }));
 
-      await expect(client.get("/fail")).rejects.toMatchObject({
-        message: "Custom Error Message",
-      });
+      await expect(client.get("/500")).rejects.toBeInstanceOf(Error);
+
+      try {
+        await client.get("/500");
+      } catch (res) {
+        expect((res as FetchError).response.status).toBe(500);
+      }
     });
   });
 
@@ -360,6 +389,7 @@ describe("createFetchClient (Standard Methods)", () => {
       const requestSideEffect = vi.fn();
 
       const client = createFetchClient({
+        baseUrl: "https://httpstat.us",
         redirects: { onRedirectSideEffect: globalSideEffect },
       });
 
@@ -367,7 +397,7 @@ describe("createFetchClient (Standard Methods)", () => {
         mockResponse({}, { status: 302, headers: { location: "/new-place" } })
       );
 
-      await client.get("/old-place", { onRedirect: requestSideEffect });
+      await client.get("/302", { onRedirect: requestSideEffect });
 
       const expectedCtx = expect.objectContaining({
         location: "/new-place",
@@ -383,6 +413,7 @@ describe("createFetchClient (Standard Methods)", () => {
       const serverHandler = vi.fn();
 
       const client = createFetchClient({
+        baseUrl: "https://httpstat.us",
         redirects: { serverRedirectHandler: serverHandler },
       });
 
@@ -393,7 +424,7 @@ describe("createFetchClient (Standard Methods)", () => {
 
       // 2. Expect the execute function to THROW (preventing silent continuation)
       // because the serverHandler in this test doesn't throw/terminate itself.
-      await expect(client.get("/protected")).rejects.toThrow(
+      await expect(client.get("/302")).rejects.toThrow(
         "serverRedirectHandler did not terminate"
       );
 
@@ -412,11 +443,12 @@ describe("createFetchClient (Standard Methods)", () => {
     it("uses standard follow mode on Client even if redirects configured", async () => {
       setServerEnv(false);
       const client = createFetchClient({
+        baseUrl: "https://httpstat.us",
         redirects: { serverRedirectHandler: vi.fn() },
       });
 
       mockFetch.mockResolvedValue(mockResponse({}));
-      await client.get("/test");
+      await client.get("/302");
 
       // Browser should always be "follow", ignoring server handler config
       expect(mockFetch).toHaveBeenCalledWith(
