@@ -3,13 +3,19 @@ function buildUrl(
   path: string,
   params?: Record<string, unknown>
 ): string {
-  const base = baseUrl ?? "";
-  const full = path.startsWith("http") ? path : `${base}${path}`;
-  const url = new URL(full);
+  const isAbsolute = /^https?:\/\//i.test(path);
+
+  if (!isAbsolute && !baseUrl) {
+    throw new Error(`Relative path "${path}" requires a baseUrl`);
+  }
+
+  const url = isAbsolute ? new URL(path) : new URL(path, baseUrl!);
 
   if (params) {
     for (const [k, v] of Object.entries(params)) {
-      if (v != null) url.searchParams.set(k, String(v));
+      if (v != null) {
+        url.searchParams.set(k, String(v));
+      }
     }
   }
 
