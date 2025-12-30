@@ -33,10 +33,10 @@ export function createFetchClient(config: FetchClientConfig = {}): FetchClient {
   const userShaper = config.responseFormat;
 
   const shaper: FullResponseShaper<StandardResponse<any>> = {
-    ...userShaper,
     ...defaultShaper,
+    ...userShaper,
     redirect: userShaper?.redirect ?? defaultShaper.redirect,
-  };
+  } as FullResponseShaper<StandardResponse<any>>;
 
   // --------------------------------------------------------------------------
   // Core Executor
