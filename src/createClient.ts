@@ -7,6 +7,7 @@ import type {
   StandardResponse,
   RequestContext,
   FullResponseShaper,
+  FetchClientForOptions,
 } from "./types";
 import {
   isServer,
@@ -20,14 +21,19 @@ import {
 // Create Fetch Client Factory
 // ============================================================================
 
-export function createFetchClient(config: FetchClientConfig = {}): FetchClient {
+export function createFetchClient<
+  C extends FetchClientConfig = FetchClientConfig
+>(config: C = {} as C): FetchClientForOptions<C["options"]> {
   const {
     baseUrl,
     headers: globalHeaders,
     redirects,
     auth,
     errors: handlers,
+    options = {},
   } = config;
+
+  const { disableUnsafeRequests = false } = options || {};
 
   const defaultShaper = createStandardShaper();
   const userShaper = config.responseFormat;
@@ -155,13 +161,18 @@ export function createFetchClient(config: FetchClientConfig = {}): FetchClient {
   // --------------------------------------------------------------------------
   // Public client
   // --------------------------------------------------------------------------
-  return {
+
+  // Unsafe methods
+  const unsafeMethods = {
     get: (p, o = {}) => execute(p, { ...o, method: "GET" }, false),
     post: (p, o = {}) => execute(p, { ...o, method: "POST" }, false),
     put: (p, o = {}) => execute(p, { ...o, method: "PUT" }, false),
     patch: (p, o = {}) => execute(p, { ...o, method: "PATCH" }, false),
     delete: (p, o = {}) => execute(p, { ...o, method: "DELETE" }, false),
+  } as const as FetchClient;
 
+  // Safe methods
+  const safeMethods = {
     safeGet: (p, o = {}) => execute(p, { ...o, method: "GET" }, true),
     safePost: (p, o = {}) => execute(p, { ...o, method: "POST" }, true),
     safePut: (p, o = {}) => execute(p, { ...o, method: "PUT" }, true),
@@ -169,5 +180,9 @@ export function createFetchClient(config: FetchClientConfig = {}): FetchClient {
     safeDelete: (p, o = {}) => execute(p, { ...o, method: "DELETE" }, true),
 
     request: (p, o) => execute(p, o, false),
-  };
+  } as const as FetchClient;
+
+  return (
+    disableUnsafeRequests ? safeMethods : { ...unsafeMethods, ...safeMethods }
+  ) as FetchClientForOptions<C["options"]>;
 }

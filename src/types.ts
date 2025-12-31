@@ -105,6 +105,11 @@ export interface FetchClientConfig {
   redirects?: RedirectConfig;
   headers?: HeadersInit;
   responseFormat?: ResponseShaper;
+  options?: FetchClientOptions;
+}
+
+export interface FetchClientOptions {
+  disableUnsafeRequests?: boolean;
 }
 
 // ============================================================================
@@ -125,6 +130,17 @@ export interface RequestOptions<TBody = unknown>
 // ============================================================================
 // Fetch Client Interface
 // ============================================================================
+
+export type UnsafeMethods = "get" | "post" | "put" | "patch" | "delete";
+export type SafeMethods = `safe${Capitalize<UnsafeMethods>}` | "request";
+
+export type FetchClientForOptions<O> = O extends {
+  disableUnsafeRequests?: boolean;
+}
+  ? O["disableUnsafeRequests"] extends true
+    ? Pick<FetchClient, SafeMethods>
+    : FetchClient
+  : FetchClient;
 
 export interface FetchClient {
   get<T = unknown>(
