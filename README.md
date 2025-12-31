@@ -81,7 +81,23 @@ import { api } from "./lib/api";
 const user = await api.get<User>("/me");
 ```
 
----
+## Run Next.js Example
+
+```bash
+# Build library from root directory:
+npm run build
+npm link
+
+# Install Next.js dependencies:
+cd .\examples\next-app\
+npm i
+npm link unified-auth-fetch
+
+# Run Next.js Server:
+npm run dev
+```
+
+Go to [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Standardized Responses
 
