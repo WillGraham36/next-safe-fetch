@@ -1,4 +1,4 @@
-# next-safe-fetch
+# unified-auth-fetch
 
 A **TypeScript-first fetch client** that works **identically on client and server**, with automatic cookie/auth handling, standardized responses, consistent error handling, and configurable redirects.
 
@@ -21,8 +21,8 @@ This library **not** available via npm _(yet)_.
 Install locally:
 
 ```bash
-git clone https://github.com/WillGraham36/next-safe-fetch.git
-cd next-safe-fetch
+git clone https://github.com/WillGraham36/unified-auth-fetch.git
+cd unified-auth-fetch
 npm i
 npm run build
 ```
@@ -38,7 +38,7 @@ This example also uses a Java Sprinboot based backend that expects a JSESSIONID 
 ### 1. Setup API Object
 
 ```ts
-import { createFetchClient } from "next-safe-fetch";
+import { createFetchClient } from "unified-auth-fetch";
 import { cookies } from "next/headers";
 
 const isServer = typeof window === "undefined";
@@ -218,3 +218,15 @@ npx vitest
 - Request deduping
 - Abort/cancellation support
 - Edge runtime stabilization
+
+## Credits
+
+- **GitHub**: https://github.com/WillGraham36
+- **Website**: https://will-graham.vercel.app/
+- **LinkedIn**: https://www.linkedin.com/in/will-graham-4623022a8/
+
+Contributions, issues, and feedback are always welcome.
+
+## License
+
+This project is licensed under the **MIT License**.
