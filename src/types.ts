@@ -2,8 +2,11 @@
 // Environment & Context Types
 // ============================================================================
 
-import { ErrorConfig, ErrorContext } from "./errors/errors.types";
-import { RedirectConfig, RedirectContext } from "./redirects/redirects.types";
+import { ErrorConfig, ErrorContext } from "./errors/errors.types.js";
+import {
+  RedirectConfig,
+  RedirectContext,
+} from "./redirects/redirects.types.js";
 
 export interface RequestContext {
   isServer: boolean;
@@ -182,5 +185,5 @@ export interface FetchClient {
   ): Promise<T>;
 }
 
-export * from "./errors/errors.types";
-export * from "./redirects/redirects.types";
+export * from "./errors/errors.types.js";
+export * from "./redirects/redirects.types.js";

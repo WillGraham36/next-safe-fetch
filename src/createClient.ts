@@ -1,5 +1,5 @@
-import { handleError } from "./errors";
-import { handleRedirect } from "./redirects";
+import { handleError } from "./errors/index.js";
+import { handleRedirect } from "./redirects/index.js";
 import type {
   FetchClient,
   FetchClientConfig,
@@ -8,14 +8,14 @@ import type {
   RequestContext,
   FullResponseShaper,
   FetchClientForOptions,
-} from "./types";
+} from "./types.js";
 import {
   isServer,
   buildUrl,
   mergeHeaders,
   parseResponse,
   createStandardShaper,
-} from "./utils";
+} from "./utils/index.js";
 
 // ============================================================================
 // Create Fetch Client Factory

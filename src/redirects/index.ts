@@ -1,1 +1,1 @@
-export * from "./handleRedirect";
+export * from "./handleRedirect.js";

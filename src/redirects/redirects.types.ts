@@ -1,4 +1,4 @@
-import { RequestContext } from "../types";
+import { RequestContext } from "../types.js";
 
 export interface RedirectContext {
   location: string;

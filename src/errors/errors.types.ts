@@ -1,4 +1,4 @@
-import { RequestContext, StandardError } from "../types";
+import { RequestContext, StandardError } from "../types.js";
 
 export type ErrorStrategy = "throw" | "return";
 

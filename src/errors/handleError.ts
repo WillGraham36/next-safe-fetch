@@ -6,7 +6,7 @@ import {
   type ResponseShaper,
   type ErrorConfig,
   FetchError,
-} from "../types";
+} from "../types.js";
 
 async function handleError<T>(
   res: Response,

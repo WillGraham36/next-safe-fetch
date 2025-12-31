@@ -1,1 +1,1 @@
-export { createFetchClient } from "./createApiSingleton";
+export { createFetchClient } from "./createApiSingleton.js";

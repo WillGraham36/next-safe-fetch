@@ -1,4 +1,4 @@
-import { FullResponseShaper, StandardResponse } from "../types";
+import { FullResponseShaper, StandardResponse } from "../types.js";
 
 export function createStandardShaper(): FullResponseShaper<
   StandardResponse<any>

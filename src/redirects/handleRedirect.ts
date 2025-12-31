@@ -3,7 +3,7 @@ import type {
   RequestContext,
   RedirectContext,
   RedirectResult,
-} from "../types";
+} from "../types.js";
 
 async function handleRedirect(
   res: Response,
