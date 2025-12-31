@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { createFetchClient } from "../src/createClient";
+import { createFetchClient } from "../src/createApiSingleton";
 
 describe("basic fetch client usage", () => {
   beforeEach(() => {

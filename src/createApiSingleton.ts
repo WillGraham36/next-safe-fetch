@@ -1,5 +1,9 @@
-import { createFetchClient } from "./createClient";
-import { FetchClient, FetchClientConfig } from "./types";
+import { createFetchClient } from "./createClient.js";
+import {
+  FetchClient,
+  FetchClientConfig,
+  FetchClientForOptions,
+} from "./types.js";
 
 let apiInstance: FetchClient | null = null;
 
@@ -14,11 +18,13 @@ async function initApi(config: FetchClientConfig = {}): Promise<FetchClient> {
 /**
  * Creates a proxy that lazily initializes the fetch client.
  */
-function createLazyApiProxy(): FetchClient {
-  return new Proxy({} as FetchClient, {
+function createLazyApiProxy<C extends FetchClientConfig = FetchClientConfig>(
+  config: C = {} as C
+): FetchClientForOptions<C["options"]> {
+  return new Proxy({} as FetchClientForOptions<C["options"]>, {
     get(_, prop: keyof FetchClient) {
       return async (...args: any[]) => {
-        const client = await initApi();
+        const client = await initApi(config);
         // @ts-ignore
         return client[prop](...args);
       };
