@@ -105,6 +105,10 @@ export interface FetchClientConfig {
   cookies?: CookieReader;
   auth?: AuthConfig;
   errors?: ErrorConfig;
+  /**
+   * Redirect handlers for client and server
+   * For the given handler(s), "redirect" mode will be set to "manual" to allow observation for each given environment.
+   */
   redirects?: RedirectConfig;
   headers?: HeadersInit;
   responseFormat?: ResponseShaper;

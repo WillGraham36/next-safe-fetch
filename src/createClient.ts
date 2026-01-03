@@ -81,27 +81,33 @@ export function createFetchClient<
       mergedHeaders.set("content-type", "application/json");
     }
 
-    // Since server handler must terminate, we set redirect mode to manual
+    // If redirect observation is needed, set redirect mode to 'manual'
     const redirectMode: RequestRedirect =
-      isServer() && redirects?.onServerRedirect ? "manual" : "follow";
+      redirects?.onClientRedirect || redirects?.onServerRedirect
+        ? "manual"
+        : "follow";
+
+    const hasBody = body != null && method !== "GET" && method !== "HEAD";
+
+    const baseRequest = new Request(url, {
+      ...rest,
+      method,
+      headers: mergedHeaders,
+      body: hasBody ? JSON.stringify(body) : undefined,
+      redirect: redirectMode,
+      credentials:
+        !isServer() && !disableAuth ? auth?.client?.credentials : undefined,
+    });
 
     const reqContext: RequestContext = {
       isServer: isServer(),
       url,
       method,
       headers: mergedHeaders,
-      request: new Request(url),
+      request: baseRequest,
     };
 
-    const res = await fetch(url, {
-      ...rest,
-      method,
-      headers: mergedHeaders,
-      body: body ? JSON.stringify(body) : undefined,
-      redirect: redirectMode,
-      credentials:
-        !isServer() && !disableAuth ? auth?.client?.credentials : undefined,
-    });
+    const res = await fetch(baseRequest);
 
     // --------------------------------------------------------------------------
     // Redirects
