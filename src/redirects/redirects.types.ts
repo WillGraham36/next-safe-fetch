@@ -8,21 +8,26 @@ export interface RedirectContext {
 
 export interface RedirectConfig {
   /**
-   * Observational only
-   * Called when a redirect response is encountered
-   * Does NOT control navigation
+   * Observational / Side Effect Only
+   * - Runs **after** a fetch signals a redirect
+   * - Can do anything: navigation, logging, analytics, UI updates
+   * - Does **not need to terminate** anything
    */
-  onRedirectSideEffect?(ctx: RedirectContext): void | Promise<void>;
+  onClientRedirect?(ctx: RedirectContext): void | Promise<void>;
 
   /**
-   * Server-only
-   * Enables manual redirect handling
-   * If provided, fetch will use redirect: "manual"
-   * Intended to be overwritten for each framework and not visible to general users
+   * - Authoritative / must terminate
+   * - Runs **only on the server** (Server Component, API route, etc.)
+   * - Must end with something like `redirect(ctx.location)` (Next.js) or `NextResponse.redirect()`
+   * - Can be used for logging or other effects **as long as it terminate**
    */
-  serverRedirectHandler?(ctx: RedirectContext): void | Promise<void>;
+  onServerRedirect?(ctx: RedirectContext): void | Promise<void>;
 }
 
-export type RedirectResult =
-  | { handled: false }
-  | { handled: true; location: string; status: number };
+export type RedirectMeta =
+  | { redirected: false }
+  | {
+      redirected: true;
+      location: string;
+      status: number;
+    };

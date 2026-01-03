@@ -384,73 +384,109 @@ describe("createFetchClient (Standard Methods)", () => {
   // 6. Redirects
   // --------------------------------------------------------------------------
   describe("Redirect Handling", () => {
-    it("calls observational hooks on redirect", async () => {
-      const globalSideEffect = vi.fn();
-      const requestSideEffect = vi.fn();
+    it("calls client redirect side effects on redirect (client env)", async () => {
+      setServerEnv(false);
+
+      const clientSideEffect = vi.fn();
 
       const client = createFetchClient({
         baseUrl: "https://httpstat.us",
-        redirects: { onRedirectSideEffect: globalSideEffect },
+        redirects: {
+          onClientRedirect: clientSideEffect,
+        },
       });
 
       mockFetch.mockResolvedValue(
-        mockResponse({}, { status: 302, headers: { location: "/new-place" } })
+        mockResponse(null, {
+          status: 302,
+          headers: { location: "/new-place" },
+        })
       );
 
-      await client.get("/302", { onRedirect: requestSideEffect });
+      await client.safeGet("/302");
 
-      const expectedCtx = expect.objectContaining({
-        location: "/new-place",
-        status: 302,
-      });
-
-      expect(globalSideEffect).toHaveBeenCalledWith(expectedCtx);
-      expect(requestSideEffect).toHaveBeenCalledWith(expectedCtx);
+      expect(clientSideEffect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          location: "/new-place",
+          status: 302,
+          ctx: expect.objectContaining({ isServer: false }),
+        })
+      );
     });
 
-    it("handles Server-Side manual redirects", async () => {
+    it("calls server redirect handler and forces termination (server env)", async () => {
       setServerEnv(true);
-      const serverHandler = vi.fn();
+
+      const serverHandler = vi.fn(); // does NOT terminate
 
       const client = createFetchClient({
         baseUrl: "https://httpstat.us",
-        redirects: { serverRedirectHandler: serverHandler },
+        redirects: {
+          onServerRedirect: serverHandler,
+        },
       });
 
-      // 1. Mock the fetch to return a 302
       mockFetch.mockResolvedValue(
-        mockResponse({}, { status: 302, headers: { location: "/login" } })
+        mockResponse(null, {
+          status: 302,
+          headers: { location: "/login" },
+        })
       );
 
-      // 2. Expect the execute function to THROW (preventing silent continuation)
-      // because the serverHandler in this test doesn't throw/terminate itself.
       await expect(client.get("/302")).rejects.toThrow(
-        "serverRedirectHandler did not terminate"
+        "onServerRedirect did not terminate"
       );
 
-      // 3. Check that fetch was called with redirect: "manual"
+      expect(serverHandler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          location: "/login",
+          status: 302,
+          ctx: expect.objectContaining({ isServer: true }),
+        })
+      );
+    });
+
+    it("uses manual redirect mode on server when onServerRedirect is provided", async () => {
+      setServerEnv(true);
+
+      const client = createFetchClient({
+        baseUrl: "https://httpstat.us",
+        redirects: {
+          onServerRedirect: () => {
+            throw new Error("terminate");
+          },
+        },
+      });
+
+      mockFetch.mockResolvedValue(
+        mockResponse(null, {
+          status: 302,
+          headers: { location: "/login" },
+        })
+      );
+
+      await expect(client.get("/302")).rejects.toThrow("terminate");
+
       expect(mockFetch).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ redirect: "manual" })
       );
-
-      // 4. Check handler was called
-      expect(serverHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ location: "/login" })
-      );
     });
 
-    it("uses standard follow mode on Client even if redirects configured", async () => {
+    it("always uses follow mode on client, even if onServerRedirect exists", async () => {
       setServerEnv(false);
+
       const client = createFetchClient({
         baseUrl: "https://httpstat.us",
-        redirects: { serverRedirectHandler: vi.fn() },
+        redirects: {
+          onServerRedirect: vi.fn(),
+        },
       });
 
       mockFetch.mockResolvedValue(mockResponse({}));
-      await client.get("/302");
 
-      // Browser should always be "follow", ignoring server handler config
+      await client.get("/200");
+
       expect(mockFetch).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ redirect: "follow" })

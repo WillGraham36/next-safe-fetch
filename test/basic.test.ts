@@ -47,8 +47,13 @@ describe("basic fetch client usage", () => {
         "X-Custom-Header": "CustomValue",
       },
       redirects: {
-        onRedirectSideEffect(ctx) {
-          console.log("Redirected to:", ctx.location);
+        onClientRedirect(ctx) {
+          console.log("Client redirect to:", ctx.location, ctx.ctx.request);
+        },
+        onServerRedirect(ctx) {
+          console.log("Server redirect to:", ctx.location, ctx.ctx.request);
+          // Example termination (Next.js style)
+          // redirect(ctx.location);
         },
       },
       errors: {

@@ -81,8 +81,9 @@ export function createFetchClient<
       mergedHeaders.set("content-type", "application/json");
     }
 
+    // Since server handler must terminate, we set redirect mode to manual
     const redirectMode: RequestRedirect =
-      isServer() && redirects?.serverRedirectHandler ? "manual" : "follow";
+      isServer() && redirects?.onServerRedirect ? "manual" : "follow";
 
     const reqContext: RequestContext = {
       isServer: isServer(),
@@ -105,23 +106,7 @@ export function createFetchClient<
     // --------------------------------------------------------------------------
     // Redirects
     // --------------------------------------------------------------------------
-    const redirectStatus = await handleRedirect(
-      res,
-      reqContext,
-      redirects,
-      onRedirect
-    );
-    if (redirectStatus.handled) {
-      if (safe) {
-        return shaper.redirect({
-          status: redirectStatus.status,
-          location: redirectStatus.location,
-          ctx: reqContext,
-        }) as StandardResponse<T>;
-      }
-
-      return undefined as never;
-    }
+    await handleRedirect(res, reqContext, redirects);
 
     // --------------------------------------------------------------------------
     // Parse Response
